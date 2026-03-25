@@ -1,0 +1,21 @@
+{
+  "name": "極速分帳 Qsplit",
+  "short_name": "Qsplit",
+  "description": "最快、最直覺的多人連線分帳 App",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

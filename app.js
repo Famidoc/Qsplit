@@ -14,6 +14,18 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// ==========================================
+// 🌟 終極魔法：開啟 Firebase 離線持久化 (Offline Mode)
+// ==========================================
+db.enablePersistence()
+  .catch((err) => {
+    if (err.code == 'failed-precondition') {
+      console.log("注意：多個分頁同時開啟時，離線模式只能在一個分頁運作喔！");
+    } else if (err.code == 'unimplemented') {
+      console.log("注意：目前的瀏覽器不支援離線儲存功能。");
+    }
+  });
+
 // 全域變數：用來存放雲端抓下來的帳單，以及記錄目前是否在編輯狀態
 let expenses = []; 
 let editingExpenseId = null;
@@ -231,4 +243,35 @@ saveBtn.addEventListener("click", () => {
 
   closeModal(); 
   // 💡 存檔後不需要手動呼叫 renderApp()，因為上方的 onSnapshot 監聽器會自動發現資料庫變了，自動幫我們重繪！
+});
+
+// ==========================================
+// 6. QR Code 邀請分享功能
+// ==========================================
+const shareBtn = document.getElementById("share-btn");
+const qrModal = document.getElementById("qr-modal");
+const closeQrBtn = document.getElementById("close-qr-btn");
+
+// 點擊分享按鈕時
+shareBtn.addEventListener("click", () => {
+  // 自動抓取現在的網址 (無論你部署到 GitHub Pages 的哪裡，它都會自動抓對！)
+  const currentUrl = window.location.href;
+
+  // 使用 QRious 在畫布上畫出 QR Code
+  new QRious({
+    element: document.getElementById('qr-canvas'),
+    value: currentUrl,
+    size: 220, // QR Code 的大小
+    background: 'white',
+    foreground: '#030712' // 深色條碼
+  });
+
+  // 顯示彈出視窗
+  qrModal.classList.remove("hidden");
+});
+
+// 關閉視窗邏輯
+closeQrBtn.addEventListener("click", () => qrModal.classList.add("hidden"));
+qrModal.addEventListener("click", (e) => { 
+  if (e.target === qrModal) qrModal.classList.add("hidden"); 
 });
