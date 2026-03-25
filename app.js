@@ -46,6 +46,20 @@ db.collection("expenses").orderBy("createdAt", "desc").onSnapshot((snapshot) => 
   renderApp(); 
 });
 
+// ==========================================
+// 🌟 新增魔法：即時監聽「活動名稱」
+// ==========================================
+db.collection("settings").doc("appInfo").onSnapshot((doc) => {
+  const titleElement = document.getElementById("group-title");
+  if (doc.exists && doc.data().title) {
+    // 如果雲端有存名字，就用雲端的
+    titleElement.innerText = doc.data().title;
+  } else {
+    // 如果雲端還沒有資料，就保持預設值
+    titleElement.innerText = "活動名稱"; 
+  }
+});
+
 
 // ==========================================
 // 3. 大腦演算法 (淨收支計算 & 債務簡化)
@@ -152,13 +166,21 @@ function renderApp() {
 // 5. 使用者互動與 Firebase 雲端操作 (CRUD)
 // ==========================================
 
-// --- 更改群組標題 ---
+// --- 更改群組標題 (寫入 Firebase) ---
 function editGroupTitle() {
   const titleElement = document.getElementById("group-title");
   const currentTitle = titleElement.innerText;
-  const newTitle = prompt("請輸入新的群組名稱：", currentTitle);
+  const newTitle = prompt("請輸入新的活動名稱：", currentTitle);
+  
+  // 如果使用者有輸入新名字，就把它推上雲端
   if (newTitle !== null && newTitle.trim() !== "") {
-    titleElement.innerText = newTitle.trim();
+    // 使用 set + merge，如果檔案不存在會自動建立，存在則只更新 title 欄位
+    db.collection("settings").doc("appInfo").set({
+      title: newTitle.trim()
+    }, { merge: true });
+    
+    // 💡 注意：這裡我們不需要手動去改 HTML 的 innerText 了，
+    // 因為上面寫好的 onSnapshot 監聽器一旦發現資料庫變了，就會瞬間自動幫我們把畫面改掉！
   }
 }
 
