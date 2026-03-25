@@ -10,70 +10,73 @@ const firebaseConfig = {
   appId: "1:682291461495:web:1e793a9a096e249fbc3572"
 };
 
-// 啟動 Firebase 與 Firestore
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ==========================================
-// 🌟 終極魔法：開啟 Firebase 離線持久化 (Offline Mode)
-// ==========================================
-db.enablePersistence()
-  .catch((err) => {
-    if (err.code == 'failed-precondition') {
-      console.log("注意：多個分頁同時開啟時，離線模式只能在一個分頁運作喔！");
-    } else if (err.code == 'unimplemented') {
-      console.log("注意：目前的瀏覽器不支援離線儲存功能。");
-    }
-  });
-
-// 全域變數：用來存放雲端抓下來的帳單，以及記錄目前是否在編輯狀態
-let expenses = []; 
-let editingExpenseId = null;
-
-
-// ==========================================
-// 2. 🌟 核心魔法：即時監聽雲端資料庫
-// ==========================================
-// 只要資料庫一有變動 (新增、刪除、修改)，這裡就會自動觸發，拉取最新資料並重繪畫面！
-db.collection("expenses").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
-  expenses = []; // 先清空舊陣列
-  snapshot.forEach((doc) => {
-    // 把每一筆雲端資料塞回陣列，並把文件 ID 記下來
-    expenses.push({ id: doc.id, ...doc.data() });
-  });
-  
-  // 資料更新完畢，呼叫大腦去重算並渲染畫面！
-  renderApp(); 
+// 啟動 Firebase 離線持久化 (深山露營也能記帳)
+db.enablePersistence().catch((err) => {
+  console.log("離線模式啟動狀態：", err.code);
 });
 
-// ==========================================
-// 🌟 新增魔法：即時監聽「活動名稱」
-// ==========================================
-// 全域變數新增這個陣列
-let groupMembers = ["小明", "小華", "小美"]; // 預設名單
 
 // ==========================================
-// 🌟 升級魔法：即時監聽「活動名稱」與「成員名單」
+// 2. 房間機制 (Room ID) 與 LocalStorage
 // ==========================================
-db.collection("settings").doc("appInfo").onSnapshot((doc) => {
+const urlParams = new URLSearchParams(window.location.search);
+let roomId = urlParams.get('room');
+
+if (roomId) {
+  // 如果網址有帶房間號，就把它記在手機記憶卡裡
+  localStorage.setItem('qsplit_current_room', roomId);
+} else {
+  // 如果網址沒有房間號，去問記憶卡
+  const savedRoomId = localStorage.getItem('qsplit_current_room');
+  if (savedRoomId) {
+    // 記憶卡有，自動導向該房間
+    window.location.replace(`?room=${savedRoomId}`);
+  } else {
+    // 記憶卡沒有，產生全新的 6 位數房間號
+    roomId = Math.random().toString(36).substring(2, 8);
+    localStorage.setItem('qsplit_current_room', roomId);
+    window.location.replace(`?room=${roomId}`);
+  }
+}
+console.log("目前身處專屬房間：", roomId);
+
+
+// ==========================================
+// 3. 全域變數與雲端監聽器 (綁定專屬房間)
+// ==========================================
+let expenses = []; 
+let editingExpenseId = null;
+let groupMembers = ["小明", "小華", "小美"]; // 預設名單
+
+// 🌟 監聽「標題」與「成員」(從特定房間讀取)
+db.collection("rooms").doc(roomId).collection("settings").doc("appInfo").onSnapshot((doc) => {
   const titleElement = document.getElementById("group-title");
   if (doc.exists) {
     const data = doc.data();
-    // 1. 更新標題
     if (data.title) titleElement.innerText = data.title;
-    // 2. 更新成員名單
     if (data.members && data.members.length > 0) groupMembers = data.members;
   } else {
-    titleElement.innerText = "活動名稱"; 
+    titleElement.innerText = "點我修改標題"; 
   }
-  // 資料抓回來後，呼叫函數重新繪製下拉選單和打勾框！
   renderMembersUI(); 
   renderApp();
 });
 
+// 🌟 監聽「帳單」(從特定房間讀取)
+db.collection("rooms").doc(roomId).collection("expenses").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
+  expenses = []; 
+  snapshot.forEach((doc) => {
+    expenses.push({ id: doc.id, ...doc.data() });
+  });
+  renderApp(); 
+});
+
 
 // ==========================================
-// 3. 大腦演算法 (淨收支計算 & 債務簡化)
+// 4. 大腦演算法 (淨收支計算 & 債務簡化)
 // ==========================================
 function calculateBalances(expensesList) {
   const balances = {};
@@ -115,15 +118,33 @@ function simplifyDebts(balances) {
 
 
 // ==========================================
-// 4. 畫面渲染 (把陣列變成 HTML 卡片)
+// 5. 畫面渲染 (把陣列變成 HTML 卡片)
 // ==========================================
+function renderMembersUI() {
+  const payerSelect = document.getElementById("input-payer");
+  const checkboxGroup = document.getElementById("checkbox-group");
+  if (!payerSelect || !checkboxGroup) return;
+
+  payerSelect.innerHTML = "";
+  checkboxGroup.innerHTML = "";
+
+  groupMembers.forEach(member => {
+    payerSelect.innerHTML += `<option value="${member}">${member}</option>`;
+    checkboxGroup.innerHTML += `
+      <label class="inline-flex items-center cursor-pointer bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 hover:bg-gray-700 transition-colors">
+        <input type="checkbox" value="${member}" class="split-checkbox w-4 h-4 text-indigo-500 rounded border-gray-600 focus:ring-indigo-500 focus:ring-2 bg-gray-700" checked>
+        <span class="ml-2 text-sm text-gray-200">${member}</span>
+      </label>
+    `;
+  });
+}
+
 function renderApp() {
   const expenseListDiv = document.getElementById("expense-list");
   expenseListDiv.innerHTML = ""; 
 
-  // 渲染帳單明細
   expenses.forEach(exp => {
-    let splitLabel = exp.involved.length === 3 ? "全員均分" : `${exp.involved.length}人均分`; 
+    let splitLabel = exp.involved.length === groupMembers.length ? "全員均分" : `${exp.involved.length}人均分`; 
     
     expenseListDiv.innerHTML += `
       <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 flex justify-between items-center group">
@@ -132,10 +153,10 @@ function renderApp() {
           <p class="text-sm text-gray-400">${exp.payer} 先付了 $${exp.amount}</p>
         </div>
         <div class="text-right flex flex-col items-end">
-          <span class="text-sm bg-gray-800 text-gray-300 px-2 py-1 rounded-full border border-gray-700">${splitLabel}</span>
+          <span class="text-xs font-medium bg-gray-800 text-gray-300 px-2 py-1 rounded border border-gray-700">${splitLabel}</span>
           <span class="text-xs text-gray-500 mt-1">${exp.involved.join('、')}</span>
         </div>
-        <div class="ml-4 flex items-center space-x-2">
+        <div class="ml-4 flex items-center space-x-1">
           <button onclick="editExpense('${exp.id}')" class="p-2 text-gray-500 hover:text-indigo-400 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
           </button>
@@ -147,26 +168,25 @@ function renderApp() {
     `;
   });
 
-  // 渲染結算建議
   const balances = calculateBalances(expenses);
   const transactions = simplifyDebts(balances);
   const settlementListDiv = document.getElementById("settlement-list");
   settlementListDiv.innerHTML = ""; 
 
   if (transactions.length === 0) {
-    settlementListDiv.innerHTML = `<p class="text-gray-400 text-center py-2">目前沒有需要結算的帳目 🎉</p>`;
+    settlementListDiv.innerHTML = `<p class="text-gray-500 text-center py-4 text-sm bg-gray-900 rounded-xl border border-gray-800">目前沒有需要結算的帳目 🎉</p>`;
     return;
   }
 
   transactions.forEach(t => {
     settlementListDiv.innerHTML += `
-      <div class="flex items-center justify-between p-3 bg-indigo-950 rounded-lg border border-indigo-900">
-        <div class="flex items-center space-x-2">
-          <span class="font-semibold text-gray-100">${t.from}</span>
-          <span class="text-indigo-300 font-bold">➔</span>
-          <span class="font-semibold text-gray-100">${t.to}</span>
+      <div class="flex items-center justify-between p-4 bg-indigo-950/40 rounded-xl border border-indigo-900/50 hover:bg-indigo-950/60 transition-colors">
+        <div class="flex items-center space-x-3">
+          <span class="font-bold text-gray-100">${t.from}</span>
+          <span class="text-indigo-400 font-bold">➔</span>
+          <span class="font-bold text-gray-100">${t.to}</span>
         </div>
-        <div class="font-bold text-indigo-300">$ ${t.amount}</div>
+        <div class="font-bold text-indigo-300 text-lg">$ ${t.amount}</div>
       </div>
     `;
   });
@@ -174,35 +194,48 @@ function renderApp() {
 
 
 // ==========================================
-// 5. 使用者互動與 Firebase 雲端操作 (CRUD)
+// 6. 使用者互動與 Firebase 操作 (寫入專屬房間)
 // ==========================================
 
-// --- 更改群組標題 (寫入 Firebase) ---
+function createNewRoom() {
+  if (confirm("確定要開啟一個全新的帳本嗎？\n\n別擔心，舊的帳本資料都會保留在雲端，只要你有原本的專屬網址，隨時都能回來查看喔！")) {
+    localStorage.removeItem('qsplit_current_room');
+    window.location.href = window.location.pathname; 
+  }
+}
+
 function editGroupTitle() {
   const titleElement = document.getElementById("group-title");
   const currentTitle = titleElement.innerText;
-  const newTitle = prompt("請輸入新的活動名稱：", currentTitle);
-  
-  // 如果使用者有輸入新名字，就把它推上雲端
+  const newTitle = prompt("請輸入新的活動名稱：", currentTitle === "點我修改標題" ? "" : currentTitle);
   if (newTitle !== null && newTitle.trim() !== "") {
-    // 使用 set + merge，如果檔案不存在會自動建立，存在則只更新 title 欄位
-    db.collection("settings").doc("appInfo").set({
+    db.collection("rooms").doc(roomId).collection("settings").doc("appInfo").set({
       title: newTitle.trim()
     }, { merge: true });
-    
-    // 💡 注意：這裡我們不需要手動去改 HTML 的 innerText 了，
-    // 因為上面寫好的 onSnapshot 監聽器一旦發現資料庫變了，就會瞬間自動幫我們把畫面改掉！
   }
 }
 
-// --- 刪除帳單 (通知 Firebase 刪除) ---
+function editMembers() {
+  const currentStr = groupMembers.join("，");
+  const input = prompt("請輸入所有參與者的名字\n(請用「逗號」隔開，例如：阿翔,小美,大軍)：", currentStr);
+  if (input !== null && input.trim() !== "") {
+    const newMembers = input.split(/[,，、]/).map(m => m.trim()).filter(m => m !== "");
+    if (newMembers.length > 0) {
+      db.collection("rooms").doc(roomId).collection("settings").doc("appInfo").set({
+        members: newMembers
+      }, { merge: true });
+    } else {
+      alert("名單不能為空喔！");
+    }
+  }
+}
+
 function deleteExpense(expenseId) {
   if (confirm("確定要刪除這筆帳單嗎？")) {
-    db.collection("expenses").doc(expenseId).delete();
+    db.collection("rooms").doc(roomId).collection("expenses").doc(expenseId).delete();
   }
 }
 
-// --- 進入編輯模式 ---
 function editExpense(expenseId) {
   const expense = expenses.find(exp => exp.id === expenseId);
   if (!expense) return;
@@ -218,13 +251,18 @@ function editExpense(expenseId) {
   addModal.classList.remove("hidden");
 }
 
-// --- 控制 Modal 視窗開關 ---
 const addBtn = document.getElementById("add-btn");
 const addModal = document.getElementById("add-modal");
 const cancelBtn = document.getElementById("cancel-btn");
 const saveBtn = document.getElementById("save-btn");
 
-addBtn.addEventListener("click", () => addModal.classList.remove("hidden"));
+addBtn.addEventListener("click", () => {
+  if (groupMembers.length === 0) {
+    alert("請先點擊右上角設定群組成員喔！");
+    return;
+  }
+  addModal.classList.remove("hidden");
+});
 
 function closeModal() {
   addModal.classList.add("hidden");
@@ -239,8 +277,6 @@ function closeModal() {
 cancelBtn.addEventListener("click", closeModal);
 addModal.addEventListener("click", (e) => { if (e.target === addModal) closeModal(); });
 
-
-// --- 儲存或更新帳單 (寫入 Firebase) ---
 saveBtn.addEventListener("click", () => {
   const title = document.getElementById("input-title").value.trim();
   const amount = parseFloat(document.getElementById("input-amount").value);
@@ -257,105 +293,43 @@ saveBtn.addEventListener("click", () => {
     return;
   }
 
-  // 準備要寫入雲端的資料包
   const expenseData = {
     title: title,
     amount: amount,
     payer: payer,
     involved: involvedMembers,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp() // 記錄雲端伺服器的時間
+    createdAt: firebase.firestore.FieldValue.serverTimestamp() 
   };
 
   if (editingExpenseId) {
-    // 情況 A：更新舊帳單
-    db.collection("expenses").doc(editingExpenseId).update(expenseData);
+    db.collection("rooms").doc(roomId).collection("expenses").doc(editingExpenseId).update(expenseData);
   } else {
-    // 情況 B：新增一筆帳單
-    db.collection("expenses").add(expenseData);
+    db.collection("rooms").doc(roomId).collection("expenses").add(expenseData);
   }
-
   closeModal(); 
-  // 💡 存檔後不需要手動呼叫 renderApp()，因為上方的 onSnapshot 監聽器會自動發現資料庫變了，自動幫我們重繪！
 });
 
+
 // ==========================================
-// 6. QR Code 邀請分享功能
+// 7. QR Code 分享功能
 // ==========================================
 const shareBtn = document.getElementById("share-btn");
 const qrModal = document.getElementById("qr-modal");
 const closeQrBtn = document.getElementById("close-qr-btn");
 
-// 點擊分享按鈕時
 shareBtn.addEventListener("click", () => {
-  // 自動抓取現在的網址 (無論你部署到 GitHub Pages 的哪裡，它都會自動抓對！)
   const currentUrl = window.location.href;
-
-  // 使用 QRious 在畫布上畫出 QR Code
   new QRious({
     element: document.getElementById('qr-canvas'),
     value: currentUrl,
-    size: 220, // QR Code 的大小
+    size: 240, 
     background: 'white',
-    foreground: '#030712' // 深色條碼
+    foreground: '#030712' 
   });
-
-  // 顯示彈出視窗
   qrModal.classList.remove("hidden");
 });
 
-// 關閉視窗邏輯
 closeQrBtn.addEventListener("click", () => qrModal.classList.add("hidden"));
 qrModal.addEventListener("click", (e) => { 
   if (e.target === qrModal) qrModal.classList.add("hidden"); 
 });
-
-// ==========================================
-// 7. 動態成員管理邏輯
-// ==========================================
-
-// --- 根據最新名單，重新繪製彈出視窗的選項 ---
-function renderMembersUI() {
-  const payerSelect = document.getElementById("input-payer");
-  const checkboxGroup = document.getElementById("checkbox-group");
-
-  // 如果找不到元素，就提早結束 (避免剛載入時報錯)
-  if (!payerSelect || !checkboxGroup) return;
-
-  payerSelect.innerHTML = "";
-  checkboxGroup.innerHTML = "";
-
-  groupMembers.forEach(member => {
-    // 塞入下拉選單 (墊付者)
-    payerSelect.innerHTML += `<option value="${member}">${member}</option>`;
-    
-    // 塞入打勾框 (分攤者)
-    // 這裡我們加了一些 Tailwind 樣式讓它變成漂亮的按鈕狀打勾框
-    checkboxGroup.innerHTML += `
-      <label class="inline-flex items-center cursor-pointer bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 hover:bg-gray-700 transition-colors">
-        <input type="checkbox" value="${member}" class="split-checkbox w-4 h-4 text-indigo-500 rounded border-gray-600 focus:ring-indigo-500 focus:ring-2 bg-gray-700" checked>
-        <span class="ml-2 text-sm text-gray-200">${member}</span>
-      </label>
-    `;
-  });
-}
-
-// --- 編輯成員並上傳 Firebase ---
-function editMembers() {
-  // 把陣列變成文字 (用逗號隔開) 顯示給使用者看
-  const currentStr = groupMembers.join("，");
-  const input = prompt("請輸入所有參與者的名字\n(請用「逗號」隔開，例如：阿翔,小美,大軍)：", currentStr);
-
-  if (input !== null && input.trim() !== "") {
-    // 把使用者輸入的文字，切回陣列 (支援全形或半形逗號，並過濾掉空白)
-    const newMembers = input.split(/[,，、]/).map(m => m.trim()).filter(m => m !== "");
-    
-    if (newMembers.length > 0) {
-      // 寫入 Firebase！(畫面會被 onSnapshot 自動更新，不用手動改畫面)
-      db.collection("settings").doc("appInfo").set({
-        members: newMembers
-      }, { merge: true });
-    } else {
-      alert("名單不能為空喔！");
-    }
-  }
-}

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'qsplit-cache-v4'; // 🌟 升級到 v4
+const CACHE_NAME = 'qsplit-cache-v5'; 
 const urlsToCache = [
   './',
   './index.html',
