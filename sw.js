@@ -1,4 +1,4 @@
-const CACHE_NAME = 'qsplit-cache-v1';
+const CACHE_NAME = 'qsplit-cache-v2';
 // 這裡列出我們希望讓手機離線暫存的檔案 (使用相對路徑)
 const urlsToCache = [
   './',
