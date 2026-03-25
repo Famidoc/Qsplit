@@ -49,15 +49,26 @@ db.collection("expenses").orderBy("createdAt", "desc").onSnapshot((snapshot) => 
 // ==========================================
 // 🌟 新增魔法：即時監聽「活動名稱」
 // ==========================================
+// 全域變數新增這個陣列
+let groupMembers = ["小明", "小華", "小美"]; // 預設名單
+
+// ==========================================
+// 🌟 升級魔法：即時監聽「活動名稱」與「成員名單」
+// ==========================================
 db.collection("settings").doc("appInfo").onSnapshot((doc) => {
   const titleElement = document.getElementById("group-title");
-  if (doc.exists && doc.data().title) {
-    // 如果雲端有存名字，就用雲端的
-    titleElement.innerText = doc.data().title;
+  if (doc.exists) {
+    const data = doc.data();
+    // 1. 更新標題
+    if (data.title) titleElement.innerText = data.title;
+    // 2. 更新成員名單
+    if (data.members && data.members.length > 0) groupMembers = data.members;
   } else {
-    // 如果雲端還沒有資料，就保持預設值
     titleElement.innerText = "活動名稱"; 
   }
+  // 資料抓回來後，呼叫函數重新繪製下拉選單和打勾框！
+  renderMembersUI(); 
+  renderApp();
 });
 
 
@@ -297,3 +308,54 @@ closeQrBtn.addEventListener("click", () => qrModal.classList.add("hidden"));
 qrModal.addEventListener("click", (e) => { 
   if (e.target === qrModal) qrModal.classList.add("hidden"); 
 });
+
+// ==========================================
+// 7. 動態成員管理邏輯
+// ==========================================
+
+// --- 根據最新名單，重新繪製彈出視窗的選項 ---
+function renderMembersUI() {
+  const payerSelect = document.getElementById("input-payer");
+  const checkboxGroup = document.getElementById("checkbox-group");
+
+  // 如果找不到元素，就提早結束 (避免剛載入時報錯)
+  if (!payerSelect || !checkboxGroup) return;
+
+  payerSelect.innerHTML = "";
+  checkboxGroup.innerHTML = "";
+
+  groupMembers.forEach(member => {
+    // 塞入下拉選單 (墊付者)
+    payerSelect.innerHTML += `<option value="${member}">${member}</option>`;
+    
+    // 塞入打勾框 (分攤者)
+    // 這裡我們加了一些 Tailwind 樣式讓它變成漂亮的按鈕狀打勾框
+    checkboxGroup.innerHTML += `
+      <label class="inline-flex items-center cursor-pointer bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 hover:bg-gray-700 transition-colors">
+        <input type="checkbox" value="${member}" class="split-checkbox w-4 h-4 text-indigo-500 rounded border-gray-600 focus:ring-indigo-500 focus:ring-2 bg-gray-700" checked>
+        <span class="ml-2 text-sm text-gray-200">${member}</span>
+      </label>
+    `;
+  });
+}
+
+// --- 編輯成員並上傳 Firebase ---
+function editMembers() {
+  // 把陣列變成文字 (用逗號隔開) 顯示給使用者看
+  const currentStr = groupMembers.join("，");
+  const input = prompt("請輸入所有參與者的名字\n(請用「逗號」隔開，例如：阿翔,小美,大軍)：", currentStr);
+
+  if (input !== null && input.trim() !== "") {
+    // 把使用者輸入的文字，切回陣列 (支援全形或半形逗號，並過濾掉空白)
+    const newMembers = input.split(/[,，、]/).map(m => m.trim()).filter(m => m !== "");
+    
+    if (newMembers.length > 0) {
+      // 寫入 Firebase！(畫面會被 onSnapshot 自動更新，不用手動改畫面)
+      db.collection("settings").doc("appInfo").set({
+        members: newMembers
+      }, { merge: true });
+    } else {
+      alert("名單不能為空喔！");
+    }
+  }
+}
