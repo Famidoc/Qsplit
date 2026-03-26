@@ -273,12 +273,18 @@ addModal.addEventListener("click", (e) => { if (e.target === addModal) closeModa
 
 saveBtn.addEventListener("click", () => {
   const title = document.getElementById("input-title").value.trim();
-  const amount = parseFloat(document.getElementById("input-amount").value);
+  
+  // 取得輸入的外幣/原金額與匯率，並計算最終台幣
+  const originalAmount = parseFloat(document.getElementById("input-amount").value);
+  const rate = parseFloat(document.getElementById("input-rate").value) || 1;
+  const finalAmount = Math.round((originalAmount || 0) * rate); 
+  
   const payer = document.getElementById("input-payer").value;
   const checkedBoxes = document.querySelectorAll(".split-checkbox:checked");
   const involvedMembers = Array.from(checkedBoxes).map(cb => cb.value);
 
-  if (!title || isNaN(amount) || amount <= 0) {
+  // 防呆檢查 (注意這裡是檢查 originalAmount)
+  if (!title || isNaN(originalAmount) || originalAmount <= 0) {
     alert("請輸入有效的項目名稱和金額哦！");
     return;
   }
@@ -287,16 +293,18 @@ saveBtn.addEventListener("click", () => {
     return;
   }
 
+  // 準備上傳到 Firebase 的資料
   const expenseData = {
     title: title,
-    amount: finalAmount,        // 用來平分的最終台幣
-    originalAmount: originalAmount, // 記住原本花了多少外幣
-    rate: rate,                 // 記住當時的匯率
+    amount: finalAmount,            // 讓演算法去平分的最終台幣
+    originalAmount: originalAmount, // 備查用：當時輸入的外幣
+    rate: rate,                     // 備查用：當時的匯率
     payer: payer,
     involved: involvedMembers,
     createdAt: firebase.firestore.FieldValue.serverTimestamp() 
   };
 
+  // 判斷是「更新舊帳單」還是「新增新帳單」
   if (editingExpenseId) {
     db.collection("rooms").doc(roomId).collection("expenses").doc(editingExpenseId).update(expenseData);
   } else {
