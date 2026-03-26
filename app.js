@@ -130,7 +130,6 @@ function renderMembersUI() {
     `;
   });
 }
-
 function renderApp() {
   const expenseListDiv = document.getElementById("expense-list");
   expenseListDiv.innerHTML = ""; 
