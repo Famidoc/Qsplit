@@ -47,7 +47,13 @@
 
   <main class="p-4 space-y-8 flex-1">
     <section>
-      <h2 class="text-sm font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider mb-3 px-1">結算建議</h2>
+      <div class="flex justify-between items-center mb-3 px-1">
+        <h2 class="text-sm font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">結算建議</h2>
+        <button onclick="exportReport()" class="text-xs flex items-center space-x-1 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded-md">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+          <span>複製文字</span>
+        </button>
+      </div>
       <div id="settlement-list" class="space-y-3">
         <p class="text-gray-500 text-center py-4 text-sm">正在載入雲端資料...</p>
       </div>

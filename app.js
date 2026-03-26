@@ -317,3 +317,40 @@ closeQrBtn.addEventListener("click", () => qrModal.classList.add("hidden"));
 qrModal.addEventListener("click", (e) => { 
   if (e.target === qrModal) qrModal.classList.add("hidden"); 
 });
+
+// ==========================================
+// 8. 結算報表匯出 (複製到剪貼簿)
+// ==========================================
+function exportReport() {
+  // 1. 重新計算一次最新的結算結果
+  const balances = calculateBalances(expenses);
+  const transactions = simplifyDebts(balances);
+  
+  // 2. 取得目前的活動名稱
+  const groupTitle = document.getElementById("group-title").innerText;
+  
+  // 3. 防呆機制：如果沒有帳單就不給複製
+  if (transactions.length === 0) {
+    alert("目前沒有需要結算的帳目喔！");
+    return;
+  }
+
+  // 4. 開始排版我們的文字報表
+  let report = `💰 【${groupTitle}】結算清單\n`;
+  report += `------------------------\n`;
+  
+  transactions.forEach(t => {
+    report += `💸 ${t.from} ➔ 給 ➔ ${t.to}： $${t.amount}\n`;
+  });
+  
+  report += `------------------------\n`;
+  report += `🔗 點擊連結查看明細：\n${window.location.href}`;
+
+  // 5. 呼叫瀏覽器的「剪貼簿 API」把文字塞進去
+  navigator.clipboard.writeText(report).then(() => {
+    alert("✅ 結算報表已複製！現在可以直接貼上到 LINE 囉！");
+  }).catch(err => {
+    alert("複製失敗，請確認瀏覽器是否允許存取剪貼簿喔！");
+    console.error('複製失敗:', err);
+  });
+}
