@@ -130,18 +130,31 @@ function renderMembersUI() {
     `;
   });
 }
+// ==========================================
+// 5. 畫面渲染 (把陣列變成 HTML 卡片)
+// ==========================================
 function renderApp() {
   const expenseListDiv = document.getElementById("expense-list");
   expenseListDiv.innerHTML = ""; 
 
   expenses.forEach(exp => {
     let splitLabel = exp.involved.length === groupMembers.length ? "全員均分" : `${exp.involved.length}人均分`; 
-    // 🌟 更新：帳單卡片的深淺色支援
+    
+    // 🌟 判斷是否有外幣與匯率資訊
+    let currencyInfo = "";
+    if (exp.originalAmount && exp.rate && exp.rate !== 1) {
+      currencyInfo = `<span class="text-xs text-gray-400 dark:text-gray-500 ml-2 font-normal tracking-wide bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">(外幣 ${exp.originalAmount} @ ${exp.rate})</span>`;
+    }
+
+    // 🌟 組合卡片 HTML
     expenseListDiv.innerHTML += `
       <div class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex justify-between items-center group shadow-sm dark:shadow-none transition-colors duration-300">
         <div class="flex-1">
-          <h3 class="font-bold text-gray-900 dark:text-gray-100">${exp.title}</h3>
-          <p class="text-sm text-gray-500 dark:text-gray-400">${exp.payer} 先付了 $${exp.amount}</p>
+          <h3 class="font-bold text-gray-900 dark:text-gray-100 flex items-center flex-wrap gap-y-1">
+            ${exp.title} 
+            ${currencyInfo}
+          </h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">${exp.payer} 先付了 $${exp.amount}</p>
         </div>
         <div class="text-right flex flex-col items-end">
           <span class="text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">${splitLabel}</span>
@@ -159,6 +172,7 @@ function renderApp() {
     `;
   });
 
+  // 結算大腦計算邏輯
   const balances = calculateBalances(expenses);
   const transactions = simplifyDebts(balances);
   const settlementListDiv = document.getElementById("settlement-list");
@@ -170,7 +184,6 @@ function renderApp() {
   }
 
   transactions.forEach(t => {
-    // 🌟 更新：結算結果卡片的深淺色支援
     settlementListDiv.innerHTML += `
       <div class="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors">
         <div class="flex items-center space-x-3">
