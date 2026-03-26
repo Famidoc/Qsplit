@@ -230,7 +230,11 @@ function editExpense(expenseId) {
   editingExpenseId = expenseId;
   document.getElementById("modal-title").innerText = "編輯帳單";
   document.getElementById("input-title").value = expense.title;
-  document.getElementById("input-amount").value = expense.amount;
+  // 🌟 如果有存原金額就顯示原金額，沒有就顯示最終金額
+  document.getElementById("input-amount").value = expense.originalAmount || expense.amount;
+  document.getElementById("input-rate").value = expense.rate || 1; // 🌟 帶入當時的匯率
+  updateCalculatedTotal(); // 🌟 觸發一次計算顯示
+  
   document.getElementById("input-payer").value = expense.payer;
   const checkboxes = document.querySelectorAll(".split-checkbox");
   checkboxes.forEach(cb => {
@@ -256,6 +260,8 @@ function closeModal() {
   addModal.classList.add("hidden");
   document.getElementById("input-title").value = "";
   document.getElementById("input-amount").value = "";
+  document.getElementById("input-rate").value = "1"; // 🌟 重設匯率為 1
+  document.getElementById("display-total").innerText = "0"; // 🌟 重設總計顯示
   const checkboxes = document.querySelectorAll(".split-checkbox");
   checkboxes.forEach(cb => cb.checked = true);
   editingExpenseId = null; 
@@ -283,7 +289,9 @@ saveBtn.addEventListener("click", () => {
 
   const expenseData = {
     title: title,
-    amount: amount,
+    amount: finalAmount,        // 用來平分的最終台幣
+    originalAmount: originalAmount, // 記住原本花了多少外幣
+    rate: rate,                 // 記住當時的匯率
     payer: payer,
     involved: involvedMembers,
     createdAt: firebase.firestore.FieldValue.serverTimestamp() 
@@ -354,3 +362,22 @@ function exportReport() {
     console.error('複製失敗:', err);
   });
 }
+
+// ==========================================
+// 9. 匯率即時計算邏輯
+// ==========================================
+const inputAmount = document.getElementById("input-amount");
+const inputRate = document.getElementById("input-rate");
+const displayTotal = document.getElementById("display-total");
+
+function updateCalculatedTotal() {
+  const amount = parseFloat(inputAmount.value) || 0;
+  const rate = parseFloat(inputRate.value) || 1;
+  // 自動乘上匯率並四捨五入到整數
+  const total = Math.round(amount * rate);
+  displayTotal.innerText = total;
+}
+
+// 只要輸入框的值有變動，就立刻重算
+inputAmount.addEventListener("input", updateCalculatedTotal);
+inputRate.addEventListener("input", updateCalculatedTotal);
