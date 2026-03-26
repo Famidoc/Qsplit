@@ -1,6 +1,3 @@
-// ==========================================
-// 1. Firebase 初始化與連線設定
-// ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyBoZvFBkdu26DLv-5G1w5y-pTSKJrEWHdY",
   authDomain: "qsplit-91b88.firebaseapp.com",
@@ -12,46 +9,49 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+db.enablePersistence().catch(err => console.log("離線模式狀態：", err.code));
 
-// 啟動 Firebase 離線持久化 (深山露營也能記帳)
-db.enablePersistence().catch((err) => {
-  console.log("離線模式啟動狀態：", err.code);
-});
-
-
-// ==========================================
-// 2. 房間機制 (Room ID) 與 LocalStorage
-// ==========================================
 const urlParams = new URLSearchParams(window.location.search);
 let roomId = urlParams.get('room');
 
 if (roomId) {
-  // 如果網址有帶房間號，就把它記在手機記憶卡裡
   localStorage.setItem('qsplit_current_room', roomId);
 } else {
-  // 如果網址沒有房間號，去問記憶卡
   const savedRoomId = localStorage.getItem('qsplit_current_room');
   if (savedRoomId) {
-    // 記憶卡有，自動導向該房間
     window.location.replace(`?room=${savedRoomId}`);
   } else {
-    // 記憶卡沒有，產生全新的 6 位數房間號
     roomId = Math.random().toString(36).substring(2, 8);
     localStorage.setItem('qsplit_current_room', roomId);
     window.location.replace(`?room=${roomId}`);
   }
 }
-console.log("目前身處專屬房間：", roomId);
+
+// 🌟 新增：深淺色模式切換邏輯
+const themeToggleBtn = document.getElementById('theme-toggle');
+const htmlElement = document.documentElement;
+
+// 讀取記憶的顏色偏好 (預設為深色)
+if (localStorage.getItem('theme') === 'light') {
+  htmlElement.classList.remove('dark');
+} else {
+  htmlElement.classList.add('dark'); // 沒設定就預設深色
+}
+
+themeToggleBtn.addEventListener('click', () => {
+  htmlElement.classList.toggle('dark');
+  if (htmlElement.classList.contains('dark')) {
+    localStorage.setItem('theme', 'dark');
+  } else {
+    localStorage.setItem('theme', 'light');
+  }
+});
 
 
-// ==========================================
-// 3. 全域變數與雲端監聽器 (綁定專屬房間)
-// ==========================================
 let expenses = []; 
 let editingExpenseId = null;
-let groupMembers = ["小明", "小華", "小美"]; // 預設名單
+let groupMembers = ["小明", "小華", "小美"];
 
-// 🌟 監聽「標題」與「成員」(從特定房間讀取)
 db.collection("rooms").doc(roomId).collection("settings").doc("appInfo").onSnapshot((doc) => {
   const titleElement = document.getElementById("group-title");
   if (doc.exists) {
@@ -65,7 +65,6 @@ db.collection("rooms").doc(roomId).collection("settings").doc("appInfo").onSnaps
   renderApp();
 });
 
-// 🌟 監聽「帳單」(從特定房間讀取)
 db.collection("rooms").doc(roomId).collection("expenses").orderBy("createdAt", "desc").onSnapshot((snapshot) => {
   expenses = []; 
   snapshot.forEach((doc) => {
@@ -74,10 +73,6 @@ db.collection("rooms").doc(roomId).collection("expenses").orderBy("createdAt", "
   renderApp(); 
 });
 
-
-// ==========================================
-// 4. 大腦演算法 (淨收支計算 & 債務簡化)
-// ==========================================
 function calculateBalances(expensesList) {
   const balances = {};
   expensesList.forEach(expense => {
@@ -116,10 +111,6 @@ function simplifyDebts(balances) {
   return transactions;
 }
 
-
-// ==========================================
-// 5. 畫面渲染 (把陣列變成 HTML 卡片)
-// ==========================================
 function renderMembersUI() {
   const payerSelect = document.getElementById("input-payer");
   const checkboxGroup = document.getElementById("checkbox-group");
@@ -130,10 +121,11 @@ function renderMembersUI() {
 
   groupMembers.forEach(member => {
     payerSelect.innerHTML += `<option value="${member}">${member}</option>`;
+    // 🌟 更新：打勾按鈕的深淺色支援
     checkboxGroup.innerHTML += `
-      <label class="inline-flex items-center cursor-pointer bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 hover:bg-gray-700 transition-colors">
-        <input type="checkbox" value="${member}" class="split-checkbox w-4 h-4 text-indigo-500 rounded border-gray-600 focus:ring-indigo-500 focus:ring-2 bg-gray-700" checked>
-        <span class="ml-2 text-sm text-gray-200">${member}</span>
+      <label class="inline-flex items-center cursor-pointer bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+        <input type="checkbox" value="${member}" class="split-checkbox w-4 h-4 text-indigo-600 dark:text-indigo-500 rounded border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:ring-2 bg-white dark:bg-gray-700" checked>
+        <span class="ml-2 text-sm text-gray-700 dark:text-gray-200">${member}</span>
       </label>
     `;
   });
@@ -145,22 +137,22 @@ function renderApp() {
 
   expenses.forEach(exp => {
     let splitLabel = exp.involved.length === groupMembers.length ? "全員均分" : `${exp.involved.length}人均分`; 
-    
+    // 🌟 更新：帳單卡片的深淺色支援
     expenseListDiv.innerHTML += `
-      <div class="bg-gray-900 p-4 rounded-xl border border-gray-800 flex justify-between items-center group">
+      <div class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex justify-between items-center group shadow-sm dark:shadow-none transition-colors duration-300">
         <div class="flex-1">
-          <h3 class="font-bold text-gray-100">${exp.title}</h3>
-          <p class="text-sm text-gray-400">${exp.payer} 先付了 $${exp.amount}</p>
+          <h3 class="font-bold text-gray-900 dark:text-gray-100">${exp.title}</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400">${exp.payer} 先付了 $${exp.amount}</p>
         </div>
         <div class="text-right flex flex-col items-end">
-          <span class="text-xs font-medium bg-gray-800 text-gray-300 px-2 py-1 rounded border border-gray-700">${splitLabel}</span>
-          <span class="text-xs text-gray-500 mt-1">${exp.involved.join('、')}</span>
+          <span class="text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-1 rounded border border-gray-200 dark:border-gray-700">${splitLabel}</span>
+          <span class="text-xs text-gray-400 dark:text-gray-500 mt-1">${exp.involved.join('、')}</span>
         </div>
         <div class="ml-4 flex items-center space-x-1">
-          <button onclick="editExpense('${exp.id}')" class="p-2 text-gray-500 hover:text-indigo-400 transition-colors">
+          <button onclick="editExpense('${exp.id}')" class="p-2 text-gray-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
           </button>
-          <button onclick="deleteExpense('${exp.id}')" class="p-2 text-gray-500 hover:text-red-500 transition-colors">
+          <button onclick="deleteExpense('${exp.id}')" class="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-500 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
           </button>
         </div>
@@ -174,28 +166,24 @@ function renderApp() {
   settlementListDiv.innerHTML = ""; 
 
   if (transactions.length === 0) {
-    settlementListDiv.innerHTML = `<p class="text-gray-500 text-center py-4 text-sm bg-gray-900 rounded-xl border border-gray-800">目前沒有需要結算的帳目 🎉</p>`;
+    settlementListDiv.innerHTML = `<p class="text-gray-500 text-center py-4 text-sm bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm dark:shadow-none">目前沒有需要結算的帳目 🎉</p>`;
     return;
   }
 
   transactions.forEach(t => {
+    // 🌟 更新：結算結果卡片的深淺色支援
     settlementListDiv.innerHTML += `
-      <div class="flex items-center justify-between p-4 bg-indigo-950/40 rounded-xl border border-indigo-900/50 hover:bg-indigo-950/60 transition-colors">
+      <div class="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors">
         <div class="flex items-center space-x-3">
-          <span class="font-bold text-gray-100">${t.from}</span>
-          <span class="text-indigo-400 font-bold">➔</span>
-          <span class="font-bold text-gray-100">${t.to}</span>
+          <span class="font-bold text-gray-800 dark:text-gray-100">${t.from}</span>
+          <span class="text-indigo-500 dark:text-indigo-400 font-bold">➔</span>
+          <span class="font-bold text-gray-800 dark:text-gray-100">${t.to}</span>
         </div>
-        <div class="font-bold text-indigo-300 text-lg">$ ${t.amount}</div>
+        <div class="font-bold text-indigo-600 dark:text-indigo-300 text-lg">$ ${t.amount}</div>
       </div>
     `;
   });
 }
-
-
-// ==========================================
-// 6. 使用者互動與 Firebase 操作 (寫入專屬房間)
-// ==========================================
 
 function createNewRoom() {
   if (confirm("確定要開啟一個全新的帳本嗎？\n\n別擔心，舊的帳本資料都會保留在雲端，只要你有原本的專屬網址，隨時都能回來查看喔！")) {
@@ -309,10 +297,6 @@ saveBtn.addEventListener("click", () => {
   closeModal(); 
 });
 
-
-// ==========================================
-// 7. QR Code 分享功能
-// ==========================================
 const shareBtn = document.getElementById("share-btn");
 const qrModal = document.getElementById("qr-modal");
 const closeQrBtn = document.getElementById("close-qr-btn");

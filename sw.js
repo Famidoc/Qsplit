@@ -1,4 +1,4 @@
-const CACHE_NAME = 'qsplit-cache-v5'; 
+const CACHE_NAME = 'qsplit-cache-v6'; 
 const urlsToCache = [
   './',
   './index.html',
