@@ -1,45 +1,100 @@
 <!DOCTYPE html>
-<html lang="zh-TW" class="dark"> <head>
+<html lang="zh-TW" class="dark" data-theme="default">
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>極速分帳 Qsplit</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = { darkMode: 'class' }
-  </script>
   
+  <script>
+    tailwind.config = { 
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            theme: {
+              from: 'var(--theme-from)',
+              to: 'var(--theme-to)',
+              text: 'var(--theme-text)',
+              bgl: 'var(--theme-bg-light)',
+              bgd: 'var(--theme-bg-dark)'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* 預設 (沉穩靛藍) */
+    :root {
+      --theme-from: #4f46e5; 
+      --theme-to: #6366f1;   
+      --theme-text: #6366f1; 
+      --theme-bg-light: #e0e7ff; 
+      --theme-bg-dark: rgba(49, 46, 129, 0.4); 
+    }
+    /* 夕陽 (粉橘) */
+    [data-theme="sunset"] {
+      --theme-from: #ec4899; 
+      --theme-to: #f97316;   
+      --theme-text: #f43f5e; 
+      --theme-bg-light: #ffe4e6; 
+      --theme-bg-dark: rgba(136, 19, 55, 0.4); 
+    }
+    /* 海風 (青藍) */
+    [data-theme="ocean"] {
+      --theme-from: #06b6d4; 
+      --theme-to: #3b82f6;   
+      --theme-text: #0ea5e9; 
+      --theme-bg-light: #e0f2fe; 
+      --theme-bg-dark: rgba(8, 47, 73, 0.4); 
+    }
+    /* 糖果 (紫桃) */
+    [data-theme="candy"] {
+      --theme-from: #a855f7; 
+      --theme-to: #ec4899;   
+      --theme-text: #d946ef; 
+      --theme-bg-light: #fae8ff; 
+      --theme-bg-dark: rgba(74, 4, 78, 0.4); 
+    }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    ::-webkit-scrollbar { width: 0px; background: transparent; }
+  </style>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#4f46e5">
   <link rel="apple-touch-icon" href="icon-192.png">
-
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-    ::-webkit-scrollbar { width: 0px; background: transparent; }
-  </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-950 text-gray-800 dark:text-gray-200 min-h-screen flex flex-col relative pb-24 transition-colors duration-300">
 
   <header class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-4 sticky top-0 z-10 flex justify-between items-center shadow-sm dark:shadow-md transition-colors duration-300">
     <div class="flex items-center space-x-2 cursor-pointer group hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors px-2 py-1 rounded-lg" onclick="editGroupTitle()">
-      <h1 id="group-title" class="text-xl font-bold text-indigo-600 dark:text-indigo-400">載入中...</h1>
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-indigo-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+      <h1 id="group-title" class="text-xl font-bold text-theme-text transition-colors">載入中...</h1>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 dark:text-gray-500 group-hover:text-theme-text transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
     </div>
 
     <div class="flex items-center space-x-1">
+      
+      <button id="palette-toggle" class="p-2 text-gray-500 dark:text-gray-400 hover:text-theme-text transition-colors" title="切換主題色">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+      </button>
+
       <button id="theme-toggle" class="p-2 text-gray-500 dark:text-gray-400 hover:text-yellow-500 dark:hover:text-yellow-400 transition-colors" title="切換深淺色">
         <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
         <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
       </button>
 
-      <button onclick="createNewRoom()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-green-500 dark:hover:text-green-400 transition-colors" title="開啟新帳本">
+      <button onclick="createNewRoom()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-green-500 transition-colors" title="開啟新帳本">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
       </button>
-      <button onclick="editMembers()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors" title="編輯成員">
+      <button onclick="editMembers()" class="p-2 text-gray-500 dark:text-gray-400 hover:text-theme-text transition-colors" title="編輯成員">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
       </button>
-      <button id="share-btn" class="p-2 text-gray-500 dark:text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors" title="分享條碼">
+      <button id="share-btn" class="p-2 text-gray-500 dark:text-gray-400 hover:text-theme-text transition-colors" title="分享條碼">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
       </button>
     </div>
@@ -48,8 +103,8 @@
   <main class="p-4 space-y-8 flex-1">
     <section>
       <div class="flex justify-between items-center mb-3 px-1">
-        <h2 class="text-sm font-semibold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">結算建議</h2>
-        <button onclick="exportReport()" class="text-xs flex items-center space-x-1 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded-md">
+        <h2 class="text-sm font-semibold text-theme-text uppercase tracking-wider transition-colors">結算建議</h2>
+        <button onclick="exportReport()" class="text-xs flex items-center space-x-1 text-gray-500 dark:text-gray-400 hover:text-theme-text transition-colors bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded-md">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
           <span>複製文字</span>
         </button>
@@ -69,7 +124,7 @@
     &copy; 2026 by Famidoc Chang & Gemini 3.1 Pro
   </footer>
 
-  <button id="add-btn" class="fixed bottom-6 right-6 bg-indigo-600 hover:bg-indigo-500 text-white w-14 h-14 rounded-full shadow-lg shadow-indigo-500/30 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 z-20">
+  <button id="add-btn" class="fixed bottom-6 right-6 bg-gradient-to-br from-theme-from to-theme-to hover:opacity-90 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95 z-20">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
   </button>
 
@@ -79,27 +134,29 @@
         <h3 id="modal-title" class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">新增一筆帳單</h3>
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">項目名稱</label>
-          <input type="text" id="input-title" placeholder="例如：買飲料" class="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 rounded-lg p-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+          <input type="text" id="input-title" placeholder="例如：買飲料" class="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 rounded-lg p-3 focus:outline-none focus:border-theme-text focus:ring-1 focus:ring-theme-text transition-colors">
         </div>
+        
         <div class="mb-4 bg-gray-100 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-200 dark:border-gray-700">
           <div class="flex gap-3 mb-3">
             <div class="flex-1">
               <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">外幣/原金額</label>
-              <input type="number" id="input-amount" placeholder="0" class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-lg p-2 focus:outline-none focus:border-indigo-500 transition-colors" inputmode="decimal">
+              <input type="number" id="input-amount" placeholder="0" class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-lg p-2 focus:outline-none focus:border-theme-text transition-colors" inputmode="decimal">
             </div>
             <div class="w-24">
               <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">匯率 (預設1)</label>
-              <input type="number" id="input-rate" value="1" step="0.001" class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-lg p-2 focus:outline-none focus:border-indigo-500 transition-colors" inputmode="decimal">
+              <input type="number" id="input-rate" value="1" step="0.001" class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-lg p-2 focus:outline-none focus:border-theme-text transition-colors" inputmode="decimal">
             </div>
           </div>
-          <div class="flex justify-between items-center bg-indigo-50 dark:bg-indigo-900/30 p-2 rounded-lg">
-            <span class="text-sm text-indigo-700 dark:text-indigo-300 font-bold">換算台幣總計：</span>
-            <span class="text-lg font-bold text-indigo-600 dark:text-indigo-400">$ <span id="display-total">0</span></span>
+          <div class="flex justify-between items-center bg-theme-bgl dark:bg-theme-bgd p-2 rounded-lg transition-colors">
+            <span class="text-sm text-theme-text font-bold">換算台幣總計：</span>
+            <span class="text-lg font-bold text-theme-text">$ <span id="display-total">0</span></span>
           </div>
         </div>
+
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">誰先墊付的？</label>
-          <select id="input-payer" class="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 rounded-lg p-3 focus:outline-none focus:border-indigo-500 transition-colors"></select>
+          <select id="input-payer" class="w-full bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 rounded-lg p-3 focus:outline-none focus:border-theme-text transition-colors"></select>
         </div>
         <div class="mb-6">
           <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">這筆錢誰要平分？</label>
@@ -108,7 +165,7 @@
       </div>
       <div class="bg-gray-50 dark:bg-gray-950 p-4 border-t border-gray-200 dark:border-gray-800 flex justify-end space-x-3 transition-colors duration-300">
         <button id="cancel-btn" class="px-5 py-2.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium transition-colors">取消</button>
-        <button id="save-btn" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium shadow-md shadow-indigo-500/20 transition-colors">儲存並平分</button>
+        <button id="save-btn" class="px-5 py-2.5 bg-gradient-to-r from-theme-from to-theme-to hover:opacity-90 text-white rounded-lg font-medium shadow-md transition-all">儲存並平分</button>
       </div>
     </div>
   </div>

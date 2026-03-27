@@ -27,15 +27,16 @@ if (roomId) {
   }
 }
 
-// 🌟 新增：深淺色模式切換邏輯
+// ==========================================
+// 🌟 深淺色模式切換邏輯
+// ==========================================
 const themeToggleBtn = document.getElementById('theme-toggle');
 const htmlElement = document.documentElement;
 
-// 讀取記憶的顏色偏好 (預設為深色)
 if (localStorage.getItem('theme') === 'light') {
   htmlElement.classList.remove('dark');
 } else {
-  htmlElement.classList.add('dark'); // 沒設定就預設深色
+  htmlElement.classList.add('dark'); 
 }
 
 themeToggleBtn.addEventListener('click', () => {
@@ -45,6 +46,27 @@ themeToggleBtn.addEventListener('click', () => {
   } else {
     localStorage.setItem('theme', 'light');
   }
+});
+
+// ==========================================
+// 🌟 動態主題(調色盤)切換邏輯
+// ==========================================
+const paletteThemes = ['default', 'sunset', 'ocean', 'candy'];
+let currentThemeIndex = 0;
+
+// 讀取記憶的調色盤設定
+const savedPalette = localStorage.getItem('qsplit_palette') || 'default';
+currentThemeIndex = paletteThemes.indexOf(savedPalette);
+if(currentThemeIndex === -1) currentThemeIndex = 0;
+htmlElement.setAttribute('data-theme', paletteThemes[currentThemeIndex]);
+
+const paletteToggleBtn = document.getElementById('palette-toggle');
+paletteToggleBtn.addEventListener('click', () => {
+  // 依序切換陣列裡的顏色
+  currentThemeIndex = (currentThemeIndex + 1) % paletteThemes.length;
+  const newTheme = paletteThemes[currentThemeIndex];
+  htmlElement.setAttribute('data-theme', newTheme);
+  localStorage.setItem('qsplit_palette', newTheme);
 });
 
 
@@ -121,18 +143,16 @@ function renderMembersUI() {
 
   groupMembers.forEach(member => {
     payerSelect.innerHTML += `<option value="${member}">${member}</option>`;
-    // 🌟 更新：打勾按鈕的深淺色支援
+    // 套用 theme-text
     checkboxGroup.innerHTML += `
       <label class="inline-flex items-center cursor-pointer bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-        <input type="checkbox" value="${member}" class="split-checkbox w-4 h-4 text-indigo-600 dark:text-indigo-500 rounded border-gray-300 dark:border-gray-600 focus:ring-indigo-500 focus:ring-2 bg-white dark:bg-gray-700" checked>
+        <input type="checkbox" value="${member}" class="split-checkbox w-4 h-4 text-theme-text rounded border-gray-300 dark:border-gray-600 focus:ring-theme-text focus:ring-2 bg-white dark:bg-gray-700" checked>
         <span class="ml-2 text-sm text-gray-700 dark:text-gray-200">${member}</span>
       </label>
     `;
   });
 }
-// ==========================================
-// 5. 畫面渲染 (把陣列變成 HTML 卡片)
-// ==========================================
+
 function renderApp() {
   const expenseListDiv = document.getElementById("expense-list");
   expenseListDiv.innerHTML = ""; 
@@ -140,13 +160,11 @@ function renderApp() {
   expenses.forEach(exp => {
     let splitLabel = exp.involved.length === groupMembers.length ? "全員均分" : `${exp.involved.length}人均分`; 
     
-    // 🌟 判斷是否有外幣與匯率資訊
     let currencyInfo = "";
     if (exp.originalAmount && exp.rate && exp.rate !== 1) {
       currencyInfo = `<span class="text-xs text-gray-400 dark:text-gray-500 ml-2 font-normal tracking-wide bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">(外幣 ${exp.originalAmount} @ ${exp.rate})</span>`;
     }
 
-    // 🌟 組合卡片 HTML
     expenseListDiv.innerHTML += `
       <div class="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 flex justify-between items-center group shadow-sm dark:shadow-none transition-colors duration-300">
         <div class="flex-1">
@@ -161,7 +179,7 @@ function renderApp() {
           <span class="text-xs text-gray-400 dark:text-gray-500 mt-1">${exp.involved.join('、')}</span>
         </div>
         <div class="ml-4 flex items-center space-x-1">
-          <button onclick="editExpense('${exp.id}')" class="p-2 text-gray-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors">
+          <button onclick="editExpense('${exp.id}')" class="p-2 text-gray-400 dark:text-gray-500 hover:text-theme-text transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /></svg>
           </button>
           <button onclick="deleteExpense('${exp.id}')" class="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-500 transition-colors">
@@ -172,7 +190,6 @@ function renderApp() {
     `;
   });
 
-  // 結算大腦計算邏輯
   const balances = calculateBalances(expenses);
   const transactions = simplifyDebts(balances);
   const settlementListDiv = document.getElementById("settlement-list");
@@ -184,14 +201,15 @@ function renderApp() {
   }
 
   transactions.forEach(t => {
+    // 結算卡片套用動態主題的背景色與文字色
     settlementListDiv.innerHTML += `
-      <div class="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-950/40 rounded-xl border border-indigo-100 dark:border-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 transition-colors">
+      <div class="flex items-center justify-between p-4 bg-theme-bgl dark:bg-theme-bgd rounded-xl border border-theme-bgl dark:border-theme-bgd hover:opacity-90 transition-colors">
         <div class="flex items-center space-x-3">
           <span class="font-bold text-gray-800 dark:text-gray-100">${t.from}</span>
-          <span class="text-indigo-500 dark:text-indigo-400 font-bold">➔</span>
+          <span class="text-theme-text font-bold">➔</span>
           <span class="font-bold text-gray-800 dark:text-gray-100">${t.to}</span>
         </div>
-        <div class="font-bold text-indigo-600 dark:text-indigo-300 text-lg">$ ${t.amount}</div>
+        <div class="font-bold text-theme-text text-lg">$ ${t.amount}</div>
       </div>
     `;
   });
@@ -242,10 +260,9 @@ function editExpense(expenseId) {
   editingExpenseId = expenseId;
   document.getElementById("modal-title").innerText = "編輯帳單";
   document.getElementById("input-title").value = expense.title;
-  // 🌟 如果有存原金額就顯示原金額，沒有就顯示最終金額
   document.getElementById("input-amount").value = expense.originalAmount || expense.amount;
-  document.getElementById("input-rate").value = expense.rate || 1; // 🌟 帶入當時的匯率
-  updateCalculatedTotal(); // 🌟 觸發一次計算顯示
+  document.getElementById("input-rate").value = expense.rate || 1; 
+  updateCalculatedTotal(); 
   
   document.getElementById("input-payer").value = expense.payer;
   const checkboxes = document.querySelectorAll(".split-checkbox");
@@ -272,8 +289,8 @@ function closeModal() {
   addModal.classList.add("hidden");
   document.getElementById("input-title").value = "";
   document.getElementById("input-amount").value = "";
-  document.getElementById("input-rate").value = "1"; // 🌟 重設匯率為 1
-  document.getElementById("display-total").innerText = "0"; // 🌟 重設總計顯示
+  document.getElementById("input-rate").value = "1"; 
+  document.getElementById("display-total").innerText = "0"; 
   const checkboxes = document.querySelectorAll(".split-checkbox");
   checkboxes.forEach(cb => cb.checked = true);
   editingExpenseId = null; 
@@ -283,10 +300,22 @@ function closeModal() {
 cancelBtn.addEventListener("click", closeModal);
 addModal.addEventListener("click", (e) => { if (e.target === addModal) closeModal(); });
 
+const inputAmount = document.getElementById("input-amount");
+const inputRate = document.getElementById("input-rate");
+const displayTotal = document.getElementById("display-total");
+
+function updateCalculatedTotal() {
+  const amount = parseFloat(inputAmount.value) || 0;
+  const rate = parseFloat(inputRate.value) || 1;
+  const total = Math.round(amount * rate);
+  displayTotal.innerText = total;
+}
+
+inputAmount.addEventListener("input", updateCalculatedTotal);
+inputRate.addEventListener("input", updateCalculatedTotal);
+
 saveBtn.addEventListener("click", () => {
   const title = document.getElementById("input-title").value.trim();
-  
-  // 取得輸入的外幣/原金額與匯率，並計算最終台幣
   const originalAmount = parseFloat(document.getElementById("input-amount").value);
   const rate = parseFloat(document.getElementById("input-rate").value) || 1;
   const finalAmount = Math.round((originalAmount || 0) * rate); 
@@ -295,7 +324,6 @@ saveBtn.addEventListener("click", () => {
   const checkedBoxes = document.querySelectorAll(".split-checkbox:checked");
   const involvedMembers = Array.from(checkedBoxes).map(cb => cb.value);
 
-  // 防呆檢查 (注意這裡是檢查 originalAmount)
   if (!title || isNaN(originalAmount) || originalAmount <= 0) {
     alert("請輸入有效的項目名稱和金額哦！");
     return;
@@ -305,18 +333,16 @@ saveBtn.addEventListener("click", () => {
     return;
   }
 
-  // 準備上傳到 Firebase 的資料
   const expenseData = {
     title: title,
-    amount: finalAmount,            // 讓演算法去平分的最終台幣
-    originalAmount: originalAmount, // 備查用：當時輸入的外幣
-    rate: rate,                     // 備查用：當時的匯率
+    amount: finalAmount,            
+    originalAmount: originalAmount, 
+    rate: rate,                     
     payer: payer,
     involved: involvedMembers,
     createdAt: firebase.firestore.FieldValue.serverTimestamp() 
   };
 
-  // 判斷是「更新舊帳單」還是「新增新帳單」
   if (editingExpenseId) {
     db.collection("rooms").doc(roomId).collection("expenses").doc(editingExpenseId).update(expenseData);
   } else {
@@ -324,6 +350,32 @@ saveBtn.addEventListener("click", () => {
   }
   closeModal(); 
 });
+
+function exportReport() {
+  const balances = calculateBalances(expenses);
+  const transactions = simplifyDebts(balances);
+  const groupTitle = document.getElementById("group-title").innerText;
+  
+  if (transactions.length === 0) {
+    alert("目前沒有需要結算的帳目喔！");
+    return;
+  }
+
+  let report = `💰 【${groupTitle}】結算清單\n`;
+  report += `------------------------\n`;
+  transactions.forEach(t => {
+    report += `💸 ${t.from} ➔ 給 ➔ ${t.to}： $${t.amount}\n`;
+  });
+  report += `------------------------\n`;
+  report += `🔗 點擊連結查看明細：\n${window.location.href}`;
+
+  navigator.clipboard.writeText(report).then(() => {
+    alert("✅ 結算報表已複製！現在可以直接貼上到 LINE 囉！");
+  }).catch(err => {
+    alert("複製失敗，請確認瀏覽器是否允許存取剪貼簿喔！");
+    console.error('複製失敗:', err);
+  });
+}
 
 const shareBtn = document.getElementById("share-btn");
 const qrModal = document.getElementById("qr-modal");
@@ -345,59 +397,3 @@ closeQrBtn.addEventListener("click", () => qrModal.classList.add("hidden"));
 qrModal.addEventListener("click", (e) => { 
   if (e.target === qrModal) qrModal.classList.add("hidden"); 
 });
-
-// ==========================================
-// 8. 結算報表匯出 (複製到剪貼簿)
-// ==========================================
-function exportReport() {
-  // 1. 重新計算一次最新的結算結果
-  const balances = calculateBalances(expenses);
-  const transactions = simplifyDebts(balances);
-  
-  // 2. 取得目前的活動名稱
-  const groupTitle = document.getElementById("group-title").innerText;
-  
-  // 3. 防呆機制：如果沒有帳單就不給複製
-  if (transactions.length === 0) {
-    alert("目前沒有需要結算的帳目喔！");
-    return;
-  }
-
-  // 4. 開始排版我們的文字報表
-  let report = `💰 【${groupTitle}】結算清單\n`;
-  report += `------------------------\n`;
-  
-  transactions.forEach(t => {
-    report += `💸 ${t.from} ➔ 給 ➔ ${t.to}： $${t.amount}\n`;
-  });
-  
-  report += `------------------------\n`;
-  report += `🔗 點擊連結查看明細：\n${window.location.href}`;
-
-  // 5. 呼叫瀏覽器的「剪貼簿 API」把文字塞進去
-  navigator.clipboard.writeText(report).then(() => {
-    alert("✅ 結算報表已複製！現在可以直接貼上到 LINE 囉！");
-  }).catch(err => {
-    alert("複製失敗，請確認瀏覽器是否允許存取剪貼簿喔！");
-    console.error('複製失敗:', err);
-  });
-}
-
-// ==========================================
-// 9. 匯率即時計算邏輯
-// ==========================================
-const inputAmount = document.getElementById("input-amount");
-const inputRate = document.getElementById("input-rate");
-const displayTotal = document.getElementById("display-total");
-
-function updateCalculatedTotal() {
-  const amount = parseFloat(inputAmount.value) || 0;
-  const rate = parseFloat(inputRate.value) || 1;
-  // 自動乘上匯率並四捨五入到整數
-  const total = Math.round(amount * rate);
-  displayTotal.innerText = total;
-}
-
-// 只要輸入框的值有變動，就立刻重算
-inputAmount.addEventListener("input", updateCalculatedTotal);
-inputRate.addEventListener("input", updateCalculatedTotal);
